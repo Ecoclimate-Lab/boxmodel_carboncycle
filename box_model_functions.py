@@ -201,7 +201,7 @@ def get_matrix_index(arr_row_num, arr_col_num, row_ind, col_ind):
         pool_indices.append(element_nums[row_ind[ind], col_ind[0][ind]])
     return(pool_indices)
 
-def carbon_climate_derivs(t, PE, PS, PL, PO):
+def carbon_climate_derivs(t, y, PE, PS, PL, PO):
     '''
     this is the main function for the box model
     '''
@@ -254,14 +254,14 @@ def carbon_climate_derivs(t, PE, PS, PL, PO):
     RFsto_f = interp1d(PS['Yint'].transpose(), PS['RFint'].transpose(), axis=0, fill_value="extrapolate")
     RFsto = RFsto_f(round(ycal))
     RF = (RFco2 + np.nansum(RFsto)) * doAtm
-    dTbar = np.sum(Tloc[PO['Isfc']] * PO['A'][PO['Isfc']]) / np.sum(A[Isfc])
+    dTbar = np.sum(Tloc[PO['Isfc']] * PO['A'][PO['Isfc']]) / np.sum(PO['A'][PO['Isfc']])
 
     # terrestrial
     # NPPfac = 1 + interp1(Yint,NPPint,ycal,'linear',0) #  forced variation
     NPPfac_f = interp1d(PS['Yint'].transpose(), PS['NPPint'].transpose(), axis=0, fill_value='extrapolate')
     NPPfac = 1 + NPPfac_f(ycal)
-    NPP = NPP_o * NPPfac * (1 + PS['CCC_LC'] * PL['beta_fert'] * np.log(patm / patm0)) # perturbation NPP
-    krate = np.diag(kbase) * Q10_resp**(PS['CCC_LT'] * dTbar / 10)  # scaled turnover rate
+    NPP = PL['NPP_o'] * NPPfac * (1 + PS['CCC_LC'] * PL['beta_fert'] * np.log(patm / PE['patm0'])) # perturbation NPP
+    krate = np.diag(PL['kbase']) * PL['Q10_resp']**(PS['CCC_LT'] * dTbar / 10)  # scaled turnover rate
 
     # equivalent of matlab's diag function 
     krate_diag = np.zeros((krate.shape[0], krate.shape[0]))
@@ -280,30 +280,31 @@ def carbon_climate_derivs(t, PE, PS, PL, PO):
         Rh = 0
 
     # ocean
-    Qbio = Qup + Qrem
-    pco2loc, pHloc, Ksol = calc_pco2(Tsol + CCC_OT * Tloc, Ssol, TAsol, Dloc, pH0) # CO2 chemistry
-    pco2Cor = patm * CCC_OC + patm0 * (1 - CCC_OC) # switch for ocean carbon-carbon coupling
-    Fgasx = kwi * A * Ksol * (pco2loc - pco2Cor) # gas exchange rate
-    # set fluxes to 0 in land-only case
-    if PS['DoOcn'] == 0:
-        Fgasx = 0
-
-    # circulation change
-
-    ############################################# update indices?? ############################################
-    rho = sw_dens(S, T + Tloc, T*0) # density
-    bbar = rho_o[7] - rho_o[3]
-    db = (rho[7]-rho[3]) - bbar
-    Psi = Psi_o * (1 - CCC_OT * dPsidb *db / bbar)
-
-    # [ycal/yend]
-
-    ## Compute Tendencies - should have units mol/s
     if PS['DoOcn'] == 1:
+        Qbio = Qup + Qrem
+        pco2loc, pHloc, Ksol = calc_pco2(Tsol + CCC_OT * Tloc, Ssol, TAsol, Dloc, pH0) # CO2 chemistry
+        pco2Cor = patm * CCC_OC + patm0 * (1 - CCC_OC) # switch for ocean carbon-carbon coupling
+        Fgasx = kwi * A * Ksol * (pco2loc - pco2Cor) # gas exchange rate
+        # set fluxes to 0 in land-only case
+        if PS['DoOcn'] == 0:
+            Fgasx = 0
+
+        # circulation change
+
+        ############################################# update indices?? ############################################
+        rho = sw_dens(S, T + Tloc, T*0) # density
+        bbar = rho_o[7] - rho_o[3]
+        db = (rho[7]-rho[3]) - bbar
+        Psi = Psi_o * (1 - CCC_OT * dPsidb *db / bbar)
+
+        # [ycal/yend]
+
+        ## Compute Tendencies - should have units mol/s
         dTdt = Psi * Tloc.transpose() -((PO['lammbda'] / V) * Tloc).transpose() + RF / PO['cm'].transpose()
         dNdt = (Psi + Qbio) * Nloc.transpose()
         dDdt = Psi*Dloc.transpose() + Rcp * Qbio * Nloc.transpose() - (Fgasx / V).transpose()
         dAdt = (1 / PE['ma']) * (np.sum(Fgasx) - NEE + FF) 
+    
     # land tendencies
     dCdt = np.matmul(PL['acoef'] * krate,  Cloc.reshape(9, 1)) + NPP * PL['bcoef']
 
