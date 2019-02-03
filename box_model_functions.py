@@ -283,7 +283,10 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
     #Rh = -np.sum(PL['acoef']) * np.diag(krate).transpose() * Cloc # Heterotrophic respiration
     #Rh = -np.sum(PL['acoef']) * krate_diag * Cloc # Heterotrophic respiration
     Rh = np.sum(-np.sum(PL['acoef'],0) * np.transpose(krate) * Cloc) # Heterotrophic respiration
+    
+    # To get back to PgC for land pools we take Cloc*(land area)*12e-15. This means that Cloc is in mol/km2?
     NEE = (NPP - Rh) * PL['Ala'] # total carbon pool tendency (mol/s)
+    ##NEE = (NPP - Rh) * 1e15 / 12 / PE['spery'] # convert to molC/s (This conversion matches FF)
     
     # set fluxes to 0 in ocean-only case
     if PS['DoTer'] == 0:
@@ -315,19 +318,19 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
     # set fluxes to 0 in land-only case
     if PS['DoOcn'] == 0:
         Fgasx = 0
-        Psi=0 # this probably gets set somewhere else when the ocn is turned on.. check
+        Psi=PO['Psi_o'] # this probably gets set somewhere else when the ocn is turned on.. check
 
     # [ycal/yend]
 
     #------ Compute Tendencies - should have units mol/s
-    dTdt = Psi * Tloc.transpose() -((PO['lammbda'] / PO['V']) * Tloc).transpose() + RF / PO['cm'].transpose()
+    dTdt = np.matmul(Psi,Tloc.transpose()) -((PO['lammbda'] / PO['V']) * Tloc).transpose() + RF / PO['cm'].transpose()
     #dNdt = (Psi + Qbio) * Nloc.transpose()
     #dDdt = Psi*Dloc.transpose() + Rcp * Qbio * Nloc.transpose() - (Fgasx / V).transpose()
     dAdt = (1 / PE['ma']) * (np.sum(Fgasx) - NEE + FF) 
 
     # land tendencies
-    dCdt = np.matmul(PL['acoef'] * krate_diag,  Cloc.reshape(9, 1)) + NPP * PL['bcoef']
-
+    dCdt = np.matmul(np.matmul(PL['acoef'],krate_diag),  Cloc.reshape(9, 1)) + NPP * PL['bcoef']
+    
     ## matrix of derivatives
 
     dydtmat = np.copy(PE['m0']) #initialize with a matrix of zeros. Making a copy here to avoid overwriting the values in PE
@@ -344,12 +347,7 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
     temporary = np.transpose(dydtmat).flatten()
     dydt=temporary[PE['Ires']]
     #dydt = dydtmat.flatten()[PE['Ires']].transpose() #this indexing is incorrect
-    
-    if ycal==1999:
-        print(dAdt)
-        print(doAtm)
-        print(dydt)
-        print('tcal = 1999')
+
 
     return(dydt)
 
