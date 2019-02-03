@@ -272,21 +272,18 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
     krate = PL['kbase'] * PL['Q10_resp']**(PS['CCC_LT'] * dTbar / 10)  # scaled turnover rate (vector)
 
 
-    ## equivalent of matlab's diag function 
+    ## create a matrix version of krate with values on the diagonal 
     krate_diag = np.zeros((krate.shape[0], krate.shape[0]))
     krate_diag_row, krate_diag_col = np.diag_indices(krate_diag.shape[0])
-    #krate_diag[krate_diag_row, krate_diag_col] = np.nonzero(krate.flatten())
     krate_diag[krate_diag_row, krate_diag_col] = np.squeeze(krate) # matrix version
-    #krate_diag = krate_diag.transpose()
     
     
     #Rh = -np.sum(PL['acoef']) * np.diag(krate).transpose() * Cloc # Heterotrophic respiration
     #Rh = -np.sum(PL['acoef']) * krate_diag * Cloc # Heterotrophic respiration
     Rh = np.sum(-np.sum(PL['acoef'],0) * np.transpose(krate) * Cloc) # Heterotrophic respiration
     
-    # To get back to PgC for land pools we take Cloc*(land area)*12e-15. This means that Cloc is in mol/km2?
+    # To get back to PgC for land pools we take Cloc*(land area)*12e-15. This means that Cloc is in mol/km2
     NEE = (NPP - Rh) * PL['Ala'] # total carbon pool tendency (mol/s)
-    ##NEE = (NPP - Rh) * 1e15 / 12 / PE['spery'] # convert to molC/s (This conversion matches FF)
     
     # set fluxes to 0 in ocean-only case
     if PS['DoTer'] == 0:
