@@ -215,12 +215,6 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
     Cloc = y[PE['Jcla']]
     patm = y[PE['Jatm']]
 
- #   Tloc = PE['Jtmp'].transpose()
- #   Nloc = PE['Jnut'].transpose()
- #   Dloc = PE['Jcoc'].transpose()
- #   Cloc = PE['Jcla']
- #   patm = PE['Jatm']
-
 
     ## special cases for ocean carbon pumps
 
@@ -258,28 +252,20 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
     # [ycal FF]
     FF = FF * 1e15 / 12 / PE['spery'] # convert to molC/s
     RFco2 = 5.35 * np.log(patm / PE['patm0']) * PS['DoRadCO2'] # radiative forcing from CO2
-    RFsto_f = interp1d(PS['Yint'].transpose(), PS['RFint'].transpose(), axis=0, fill_value="extrapolate")
-    RFsto = RFsto_f(round(ycal))
+    RFsto=np.interp(round(ycal),PS['Yint'].transpose(), PS['RFint'].transpose())
     RF = (RFco2 + np.nansum(RFsto)) * doAtm
     dTbar = np.sum(Tloc[PO['Isfc']] * PO['A'][PO['Isfc']]) / np.sum(PO['A'][PO['Isfc']])
 
     #------ terrestrial
-    # NPPfac = 1 + interp1(Yint,NPPint,ycal,'linear',0) #  forced variation
-    NPPfac_f = interp1d(PS['Yint'].transpose(), PS['NPPint'].transpose(), axis=0, fill_value='extrapolate')
-    NPPfac = 1 + NPPfac_f(ycal)
+    NPPfac = 1 + np.interp(ycal,PS['Yint'].transpose(), PS['NPPint'].transpose())
+    
     NPP = PL['NPP_o'] * NPPfac * (1 + PS['CCC_LC'] * PL['beta_fert'] * np.log(patm / PE['patm0'])) # perturbation NPP
     #krate = np.diag(PL['kbase']) * PL['Q10_resp']**(PS['CCC_LT'] * dTbar / 10)  # scaled turnover rate
     krate = PL['kbase'] * PL['Q10_resp']**(PS['CCC_LT'] * dTbar / 10)  # scaled turnover rate (vector)
-
-
     ## create a matrix version of krate with values on the diagonal 
     krate_diag = np.zeros((krate.shape[0], krate.shape[0]))
     krate_diag_row, krate_diag_col = np.diag_indices(krate_diag.shape[0])
     krate_diag[krate_diag_row, krate_diag_col] = np.squeeze(krate) # matrix version
-    
-    
-    #Rh = -np.sum(PL['acoef']) * np.diag(krate).transpose() * Cloc # Heterotrophic respiration
-    #Rh = -np.sum(PL['acoef']) * krate_diag * Cloc # Heterotrophic respiration
     Rh = np.sum(-np.sum(PL['acoef'],0) * np.transpose(krate) * Cloc) # Heterotrophic respiration
     
     # To get back to PgC for land pools we take Cloc*(land area)*12e-15. This means that Cloc is in mol/km2
@@ -343,7 +329,6 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
 
     temporary = np.transpose(dydtmat).flatten()
     dydt=temporary[PE['Ires']]
-    #dydt = dydtmat.flatten()[PE['Ires']].transpose() #this indexing is incorrect
 
 
     return(dydt)
