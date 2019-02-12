@@ -124,11 +124,11 @@ def calc_pco2(t, s, ta, c, phg):
                       (17.27039 * invtk + 2.81197) *
                       sqrts + (-44.99486 * invtk - 0.09984) * s)
 
-    ksilocal = no.exp(-8904.2 * invtk + 117.385 - 
+    ksilocal = np.exp(-8904.2 * invtk + 117.385 - 
                       19.334 * dlogtk + 
                       (-458.79 * invtk + 3.5913) * sqrtis + 
                       (188.74 * invtk - 1.5998) * iss + 
-                      (-12.1652 * invtk + 0.07871) * is2 +  
+                      (-12.1652 * invtk + 0.07871) * iss2 +  
                       np.log(1.0 - 0.001005 * s))
 
     kwlocal = np.exp(-13847.26 * invtk + 148.9652 -
@@ -140,7 +140,7 @@ def calc_pco2(t, s, ta, c, phg):
                      23.093 * dlogtk + 
                      (-13856 * invtk + 324.57 - 47.986 * dlogtk) *sqrtis + 
                      (35474 * invtk - 771.54 + 114.723 * dlogtk) *iss - 
-                     2698 * invtk * iss**1.5 + 1776 * invtk * is2 + 
+                     2698 * invtk * iss**1.5 + 1776 * invtk * iss2 + 
                      np.log(1.0 - 0.001005 * s))
 
     kflocal = np.exp(1590.2 * invtk - 12.641 + 1.525 * sqrtis + 
@@ -282,21 +282,21 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
     if PS['DoOcn'] == 1:
         Qbio = PO['Qup'] + PO['Qrem']
         pco2loc, pHloc, Ksol = calc_pco2(Tsol + PS['CCC_OT'] * Tloc, Ssol, TAsol, Dloc, PO['pH0']) # CO2 chemistry
-        pco2Cor = patm * PS['CCC_OC'] + patm0 * (1 - PS['CCC_OC']) # switch for ocean carbon-carbon coupling
-        Fgasx = PO['kwi'] * A * Ksol * (pco2loc - pco2Cor) # gas exchange rate
+        pco2Cor = patm * PS['CCC_OC'] + PE['patm0'] * (1 - PS['CCC_OC']) # switch for ocean carbon-carbon coupling
+        Fgasx = PO['kwi'] * PO['A'] * Ksol * (pco2loc - pco2Cor) # gas exchange rate
 
         # circulation change
 
         ############################################# update indices?? ############################################
-        rho = sw_dens(S, T + Tloc, T*0) # density
+        rho = sw_dens(S, T + Tloc, T*0) # density ###!!! Needs to reference a function in this file - is that possible?
         bbar = PO['rho_o'][7] - PO['rho_o'][3]
         db = (rho[7]-rho[3]) - bbar
-        Psi = Psi_o * (1 - CCC_OT * PO['dPsidb'] *db / bbar)
+        Psi = PO['Psi_o'] * (1 - PS['CCC_OT'] * PO['dPsidb'] *db / bbar)
         
         #------ Compute Tendencies - should have units mol/s
         #dTdt = Psi * Tloc.transpose() -((PO['lammbda'] / V) * Tloc).transpose() + RF / PO['cm'].transpose()
         dNdt = (Psi + Qbio) * Nloc.transpose()
-        dDdt = Psi*Dloc.transpose() + Rcp * Qbio * Nloc.transpose() - (Fgasx / V).transpose()
+        dDdt = Psi*Dloc.transpose() + PO['Rcp'] * Qbio * Nloc.transpose() - (Fgasx / V).transpose()
         
     # set fluxes to 0 in land-only case
     if PS['DoOcn'] == 0:
