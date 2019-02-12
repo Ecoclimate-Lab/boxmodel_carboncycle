@@ -280,18 +280,18 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
 
     #------ ocean
     if PS['DoOcn'] == 1:
-        Qbio = Qup + Qrem
-        pco2loc, pHloc, Ksol = calc_pco2(Tsol + CCC_OT * Tloc, Ssol, TAsol, Dloc, pH0) # CO2 chemistry
-        pco2Cor = patm * CCC_OC + patm0 * (1 - CCC_OC) # switch for ocean carbon-carbon coupling
-        Fgasx = kwi * A * Ksol * (pco2loc - pco2Cor) # gas exchange rate
+        Qbio = PO['Qup'] + PO['Qrem']
+        pco2loc, pHloc, Ksol = calc_pco2(Tsol + PS['CCC_OT'] * Tloc, Ssol, TAsol, Dloc, PO['pH0']) # CO2 chemistry
+        pco2Cor = patm * PS['CCC_OC'] + patm0 * (1 - PS['CCC_OC']) # switch for ocean carbon-carbon coupling
+        Fgasx = PO['kwi'] * A * Ksol * (pco2loc - pco2Cor) # gas exchange rate
 
         # circulation change
 
         ############################################# update indices?? ############################################
         rho = sw_dens(S, T + Tloc, T*0) # density
-        bbar = rho_o[7] - rho_o[3]
+        bbar = PO['rho_o'][7] - PO['rho_o'][3]
         db = (rho[7]-rho[3]) - bbar
-        Psi = Psi_o * (1 - CCC_OT * dPsidb *db / bbar)
+        Psi = Psi_o * (1 - CCC_OT * PO['dPsidb'] *db / bbar)
         
         #------ Compute Tendencies - should have units mol/s
         #dTdt = Psi * Tloc.transpose() -((PO['lammbda'] / V) * Tloc).transpose() + RF / PO['cm'].transpose()
