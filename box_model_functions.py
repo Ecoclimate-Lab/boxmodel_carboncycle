@@ -208,6 +208,7 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
 
     import numpy as np
     from scipy.interpolate import interp1d
+    import seawater as sw
 
     Tloc = y[PE['Jtmp']].transpose()
     Nloc = y[PE['Jnut']].transpose()
@@ -280,15 +281,15 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
 
     #------ ocean
     if PS['DoOcn'] == 1:
-        Qbio = Qup + Qrem
-        pco2loc, pHloc, Ksol = calc_pco2(Tsol + CCC_OT * Tloc, Ssol, TAsol, Dloc, pH0) # CO2 chemistry
-        pco2Cor = patm * CCC_OC + patm0 * (1 - CCC_OC) # switch for ocean carbon-carbon coupling
-        Fgasx = kwi * A * Ksol * (pco2loc - pco2Cor) # gas exchange rate
+        Qbio = PO['Qup'] + PO['Qrem']
+        pco2loc, pHloc, Ksol = calc_pco2(Tsol + PS['CCC_OT'] * Tloc, Ssol, TAsol, Dloc, pH0) # CO2 chemistry
+        pco2Cor = patm * PS['CCC_OC'] + PE['patm0'] * (1 - CCC_OC) # switch for ocean carbon-carbon coupling
+        Fgasx = PO['kwi'] * PO['A'] * Ksol * (pco2loc - pco2Cor) # gas exchange rate
 
         # circulation change
 
         ############################################# update indices?? ############################################
-        rho = sw_dens(S, T + Tloc, T*0) # density
+        rho = sw.dens(S, T + Tloc, T*0) # density
         bbar = rho_o[7] - rho_o[3]
         db = (rho[7]-rho[3]) - bbar
         Psi = Psi_o * (1 - CCC_OT * dPsidb *db / bbar)
