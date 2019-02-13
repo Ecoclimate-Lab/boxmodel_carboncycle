@@ -124,11 +124,11 @@ def calc_pco2(t, s, ta, c, phg):
                       (17.27039 * invtk + 2.81197) *
                       sqrts + (-44.99486 * invtk - 0.09984) * s)
 
-    ksilocal = no.exp(-8904.2 * invtk + 117.385 - 
+    ksilocal = np.exp(-8904.2 * invtk + 117.385 - 
                       19.334 * dlogtk + 
                       (-458.79 * invtk + 3.5913) * sqrtis + 
                       (188.74 * invtk - 1.5998) * iss + 
-                      (-12.1652 * invtk + 0.07871) * is2 +  
+                      (-12.1652 * invtk + 0.07871) * iss2 +  
                       np.log(1.0 - 0.001005 * s))
 
     kwlocal = np.exp(-13847.26 * invtk + 148.9652 -
@@ -140,7 +140,7 @@ def calc_pco2(t, s, ta, c, phg):
                      23.093 * dlogtk + 
                      (-13856 * invtk + 324.57 - 47.986 * dlogtk) *sqrtis + 
                      (35474 * invtk - 771.54 + 114.723 * dlogtk) *iss - 
-                     2698 * invtk * iss**1.5 + 1776 * invtk * is2 + 
+                     2698 * invtk * iss**1.5 + 1776 * invtk * iss2 + 
                      np.log(1.0 - 0.001005 * s))
 
     kflocal = np.exp(1590.2 * invtk - 12.641 + 1.525 * sqrtis + 
@@ -282,34 +282,31 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
     #------ ocean
     if PS['DoOcn'] == 1:
         Qbio = PO['Qup'] + PO['Qrem']
-        pco2loc, pHloc, Ksol = calc_pco2(Tsol + PS['CCC_OT'] * Tloc, Ssol, TAsol, Dloc, pH0) # CO2 chemistry
-        pco2Cor = patm * PS['CCC_OC'] + PE['patm0'] * (1 - CCC_OC) # switch for ocean carbon-carbon coupling
+        pco2loc, pHloc, Ksol = calc_pco2(Tsol + PS['CCC_OT'] * Tloc, Ssol, TAsol, Dloc, PO['pH0']) # CO2 chemistry
+        pco2Cor = patm * PS['CCC_OC'] + PE['patm0'] * (1 - PS['CCC_OC']) # switch for ocean carbon-carbon coupling
         Fgasx = PO['kwi'] * PO['A'] * Ksol * (pco2loc - pco2Cor) # gas exchange rate
 
         # circulation change
-
-        ############################################# update indices?? ############################################
-        rho = sw.dens(S, T + Tloc, T*0) # density
-        bbar = rho_o[7] - rho_o[3]
-        db = (rho[7]-rho[3]) - bbar
-        Psi = Psi_o * (1 - CCC_OT * dPsidb *db / bbar)
+        rho = sw.dens(PO['S'], PO['T'] + Tloc, PO['T'] * 0).flatten() # density
+        bbar = PO['rho_o'][6] - PO['rho_o'][2]
+        db = (rho[6] - rho[2]) - bbar
+        Psi = PO['Psi_o'] * (1 - PS['CCC_OT'] * PO['dPsidb'] * db / bbar)
         
         #------ Compute Tendencies - should have units mol/s
         #dTdt = Psi * Tloc.transpose() -((PO['lammbda'] / V) * Tloc).transpose() + RF / PO['cm'].transpose()
-        dNdt = (Psi + Qbio) * Nloc.transpose()
-        dDdt = Psi*Dloc.transpose() + Rcp * Qbio * Nloc.transpose() - (Fgasx / V).transpose()
+        dNdt = np.matmul(Psi + Qbio, Nloc.transpose())
+        dDdt = np.matmul(Psi, Dloc.transpose()) + PO['Rcp'] * np.matmul(Qbio, Nloc.transpose()) - Fgasx / PO['V'].transpose()
         
     # set fluxes to 0 in land-only case
     if PS['DoOcn'] == 0:
         Fgasx = 0
-        Psi=PO['Psi_o'] # this probably gets set somewhere else when the ocn is turned on.. check
+        Psi = PO['Psi_o'] # this probably gets set somewhere else when the ocn is turned on.. check
 
     # [ycal/yend]
 
     #------ Compute Tendencies - should have units mol/s
     dTdt = np.matmul(Psi,Tloc.transpose()) -((PO['lammbda'] / PO['V']) * Tloc).transpose() + RF / PO['cm'].transpose()
-    #dNdt = (Psi + Qbio) * Nloc.transpose()
-    #dDdt = Psi*Dloc.transpose() + Rcp * Qbio * Nloc.transpose() - (Fgasx / V).transpose()
+    
     dAdt = (1 / PE['ma']) * (np.sum(Fgasx) - NEE + FF) 
 
     # land tendencies
@@ -319,10 +316,10 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
 
     dydtmat = np.copy(PE['m0']) #initialize with a matrix of zeros. Making a copy here to avoid overwriting the values in PE
     if PS['DoOcn'] == 1: 
-        dydtmat[0:PE['nb'],1] = dNdt
-        dydtmat[0:PE['nb'],2] = dDdt
+        dydtmat[0:PE['nb'],1] = dNdt.flatten()
+        dydtmat[0:PE['nb'],2] = dDdt.flatten()
         
-    dydtmat[0:PE['nb'],0] = dTdt
+    dydtmat[0:PE['nb'],0] = dTdt.flatten()
     dydtmat[0, 4] = dAdt * doAtm;
     
     if PS['DoTer'] == 1:
