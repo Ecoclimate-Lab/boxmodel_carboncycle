@@ -225,8 +225,10 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
         Tsol = PO['T']
         Ssol = PO['S']
         if PS['DoOcnSol'] == 0: 
-            Tsol[PO['Isfc']] = np.sum(PO['T'][PO['Isfc']] * PO['A'][PO['Isfc']]) / np.sum(PO['A'][PO['Isfc']])
-            Ssol[PO['Isfc']] = np.sum(PO['S'][PO['Isfc']] * PO['A'][PO['Isfc']]) / np.sum(PO['A'][PO['Isfc']])
+            Ttmp=Tsol.flatten()
+            Stmp=Ssol.flatten()
+            Tsol[0,PO['Isfc']] = np.sum(Ttmp[PO['Isfc']] * PO['A'][PO['Isfc']]) / np.sum(PO['A'][PO['Isfc']])
+            Ssol[0,PO['Isfc']] = np.sum(Stmp[PO['Isfc']] * PO['A'][PO['Isfc']]) / np.sum(PO['A'][PO['Isfc']])
 
         # homogenize alkalinity if no bio pump
         TAsol = PO['TA']
@@ -295,7 +297,12 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
         #------ Compute Tendencies - should have units mol/s
         #dTdt = Psi * Tloc.transpose() -((PO['lammbda'] / V) * Tloc).transpose() + RF / PO['cm'].transpose()
         dNdt = np.matmul(Psi + Qbio, Nloc.transpose())
+        #term2=PO['Rcp'] * np.matmul(Qbio, Nloc.transpose()) 
+        #term1=np.matmul(Psi, Dloc.transpose()) # this one fails
+        #term3=Fgasx / PO['V'].transpose()
+        #dDdt= term1+term2-term3
         dDdt = np.matmul(Psi, Dloc.transpose()) + PO['Rcp'] * np.matmul(Qbio, Nloc.transpose()) - Fgasx / PO['V'].transpose()
+        
         
     # set fluxes to 0 in land-only case
     if PS['DoOcn'] == 0:
