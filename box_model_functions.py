@@ -225,13 +225,13 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
         Tsol = PO['T']
         Ssol = PO['S']
         if PS['DoOcnSol'] == 0: 
-            Tsol[Isfc] = np.sum(T[Isfc] * A[Isfc]) / np.sum(A[Isfc])
-            Ssol[Isfc] = np.sum(S[Isfc] * A[Isfc]) / np.sum(A[Isfc])
+            Tsol[PO['Isfc']] = np.sum(PO['T'][PO['Isfc']] * PO['A'][PO['Isfc']]) / np.sum(PO['A'][PO['Isfc']])
+            Ssol[PO['Isfc']] = np.sum(PO['S'][PO['Isfc']] * PO['A'][PO['Isfc']]) / np.sum(PO['A'][PO['Isfc']])
 
         # homogenize alkalinity if no bio pump
         TAsol = PO['TA']
         if PS['DoOcnBio'] == 0:
-            TAsol[Isfc] = np.sum(TA[Isfc] * A[Isfc]) / np.sum(A[Isfc])
+            TAsol[PO['Isfc']] = np.sum(PO['TA'][PO['Isfc']] * PO['A'][PO['Isfc']]) / np.sum(PO['A'][PO['Isfc']])
 
     ## update basic quantities
 
