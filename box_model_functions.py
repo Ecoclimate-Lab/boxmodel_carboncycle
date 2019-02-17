@@ -295,12 +295,7 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
         Psi = PO['Psi_o'] * (1 - PS['CCC_OT'] * PO['dPsidb'] * db / bbar)
         
         #------ Compute Tendencies - should have units mol/s
-        #dTdt = Psi * Tloc.transpose() -((PO['lammbda'] / V) * Tloc).transpose() + RF / PO['cm'].transpose()
-        dNdt = np.matmul(Psi + Qbio, Nloc.transpose())
-        #term2=PO['Rcp'] * np.matmul(Qbio, Nloc.transpose()) 
-        #term1=np.matmul(Psi, Dloc.transpose()) # this one fails
-        #term3=Fgasx / PO['V'].transpose()
-        #dDdt= term1+term2-term3
+        dNdt = np.matmul(Psi + Qbio, Nloc.transpose()) ######!!!! There is likely a problem with dNdt - need to check with matlab
         dDdt = np.matmul(Psi, Dloc.transpose()) + PO['Rcp'] * np.matmul(Qbio, Nloc.transpose()) - Fgasx / PO['V'].transpose()
         
         
@@ -312,7 +307,7 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
     # [ycal/yend]
 
     #------ Compute Tendencies - should have units mol/s
-    dTdt = np.matmul(Psi,Tloc.transpose()) -((PO['lammbda'] / PO['V']) * Tloc).transpose() + RF / PO['cm'].transpose()
+    dTdt = np.matmul(Psi,Tloc.transpose()) -((PO['lammbda'] / PO['V']) * Tloc).transpose() + RF / PO['cm'].transpose() ###!!! problem here too?
     
     dAdt = (1 / PE['ma']) * (np.sum(Fgasx) - NEE + FF) 
 
