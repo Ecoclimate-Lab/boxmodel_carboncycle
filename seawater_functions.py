@@ -40,7 +40,8 @@ def dens0(s, t):
        doi:10.1016/0198-0149(81)90122-9
 
     """
-
+    import numpy as np
+    
     s, t = list(map(np.asanyarray, (s, t)))
 
     T68 = T68conv(t)
@@ -98,7 +99,8 @@ def dens(s, t, p):
        Vol27A, pp255-264. doi:10.1016/0198-0149(80)90016-3
 
     """
-
+    import numpy as np
+    
     s, t, p = list(map(np.asanyarray, (s, t, p)))
 
     # UNESCO 1983. Eqn..7  p.15.
@@ -149,6 +151,8 @@ def seck(s, t, p=0):
        doi:10.1016/0198-0149(81)90122-9
 
     """
+    import numpy as np
+    
     s, t, p = list(map(np.asanyarray, (s, t, p)))
 
     # Compute compression terms.
@@ -219,5 +223,53 @@ def T68conv(T90):
        Southampton, United Kingdom, 10.
 
     """
+    import numpy as np
+    
     T90 = np.asanyarray(T90)
     return T90 * 1.00024
+
+def smow(t):
+    """
+    Density of Standard Mean Ocean Water (Pure Water) using EOS 1980.
+
+    Parameters
+    ----------
+    t : array_like
+        temperature [℃ (ITS-90)]
+
+    Returns
+    -------
+    dens(t) : array_like
+              density  [kg m :sup:`3`]
+
+    Examples
+    --------
+    >>> # Data from UNESCO Tech. Paper in Marine Sci. No. 44, p22.
+    >>> import seawater as sw
+    >>> t = T90conv([0, 0, 30, 30, 0, 0, 30, 30])
+    >>> sw.smow(t)
+    array([ 999.842594  ,  999.842594  ,  995.65113374,  995.65113374,
+            999.842594  ,  999.842594  ,  995.65113374,  995.65113374])
+
+    References
+    ----------
+    .. [1] Fofonoff, P. and Millard, R.C. Jr UNESCO 1983. Algorithms for
+       computation of fundamental properties of seawater. UNESCO Tech. Pap. in
+       Mar. Sci., No. 44, 53 pp.  Eqn.(31) p.39.
+       http://unesdoc.unesco.org/images/0005/000598/059832eb.pdf
+
+    .. [2] Millero, F.J. and  Poisson, A. International one-atmosphere equation
+       of state of seawater. Deep-Sea Res. 1981. Vol28A(6) pp625-629.
+       doi:10.1016/0198-0149(81)90122-9
+
+    """
+    import numpy as np
+    
+    t = np.asanyarray(t)
+
+    a = (999.842594, 6.793952e-2, -9.095290e-3, 1.001685e-4, -1.120083e-6,
+         6.536332e-9)
+
+    T68 = T68conv(t)
+    return (a[0] + (a[1] + (a[2] + (a[3] + (a[4] + a[5] * T68) * T68) * T68) *
+            T68) * T68)

@@ -208,7 +208,9 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
 
     import numpy as np
     from scipy.interpolate import interp1d
-    import seawater as sw
+    #import seawater as sw
+    # added the necessary seawater functions to their own .py module
+    from seawater_functions import dens0, dens, seck, T68conv
 
     Tloc = y[PE['Jtmp']].transpose()
     Nloc = y[PE['Jnut']].transpose()
@@ -289,7 +291,8 @@ def carbon_climate_derivs(t, y, PE, PS, PL, PO):
         Fgasx = PO['kwi'] * PO['A'] * Ksol * (pco2loc - pco2Cor) # gas exchange rate
 
         # circulation change
-        rho = sw.dens(PO['S'], PO['T'] + Tloc, PO['T'] * 0).flatten() # density
+        #rho = sw.dens(PO['S'], PO['T'] + Tloc, PO['T'] * 0).flatten() # density
+        rho = dens(PO['S'], PO['T'] + Tloc, PO['T'] * 0).flatten() # density
         bbar = PO['rho_o'][6] - PO['rho_o'][2]
         db = (rho[6] - rho[2]) - bbar
         Psi = PO['Psi_o'] * (1 - PS['CCC_OT'] * PO['dPsidb'] * db / bbar)
