@@ -112,11 +112,23 @@ def co2_emissions(yr, escheme):
         time = np.concatenate([spinup_time, time_future+spinup_time[-1]])
 
         emit_future = np.zeros(len(time_future))
-        emit_future[0:100] = 10
+        emit_future[0:99] = 10 # emissions phase, 10Pg/yr
         emit = np.concatenate([ideal_emit_hist, emit_future])
 #         emit = emit_future
 #         time = time_future
-        
+
+    elif escheme == "flat10_cdr": # done
+        time_future = np.arange(1, 1001, step=1)
+        time = np.concatenate([spinup_time, time_future+spinup_time[-1]])
+
+        emissramp = np.ones(100)*(-0.2)
+        rampdown = np.cumsum(emissramp)+10
+        emit_future = np.zeros(len(time_future))
+        emit_future[0:100] = 10 # emissions phase, 10Pg/yr
+        emit_future[100:200] = rampdown # ramp down emissions
+        emit_future[200:299] = -10 # negative stable emissions
+        emit = np.concatenate([ideal_emit_hist, emit_future])
+    
     elif escheme == "CDR-pi-pulse":
         time_future = np.arange(1, 1001, step=1)
         time = np.concatenate([spinup_time, time_future+spinup_time[-1]])
